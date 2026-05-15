@@ -121,36 +121,53 @@ const App = () => {
   };
 
   const selectedTarget = statuses.find((s) => s.id === selectedId);
+  const upCount = statuses.filter((s) => s.is_up === 1).length;
+  const downCount = statuses.filter((s) => s.is_up === 0).length;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#020817",
-        color: "#e2e8f0",
-        fontFamily: "system-ui, sans-serif",
-        padding: "32px 24px",
-        maxWidth: 900,
-        margin: "0 auto",
-      }}
-    >
-      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>
+    <div style={{ minHeight: "100vh", background: "#020817", color: "#e2e8f0", fontFamily: "system-ui, sans-serif" }}>
+
+      {/* ── Top bar ─────────────────────────────────────────── */}
+      <header style={{
+        background: "#0a1628",
+        borderBottom: "1px solid #1e293b",
+        padding: "0 32px",
+        height: 60,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, whiteSpace: "nowrap" }}>
             MUDE Platform Monitor
           </h1>
-          <p style={{ color: "#64748b", marginTop: 6, fontSize: 14 }}>
-            TU Delft platform uptime — refreshes every 30s
-            {lastUpdated && (
-              <span> · Last updated: {lastUpdated.toLocaleTimeString("en-GB")}</span>
+          {/* Status pills */}
+          <div style={{ display: "flex", gap: 8 }}>
+            {upCount > 0 && (
+              <span style={{ background: "#14532d", color: "#4ade80", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>
+                ● {upCount} UP
+              </span>
             )}
-          </p>
+            {downCount > 0 && (
+              <span style={{ background: "#450a0a", color: "#f87171", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>
+                ● {downCount} DOWN
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* API key management */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {lastUpdated && (
+            <span style={{ color: "#475569", fontSize: 13 }}>
+              Updated {lastUpdated.toLocaleTimeString("en-GB")}
+            </span>
+          )}
+          {/* API key */}
           {showKeyInput ? (
-            <>
+            <div style={{ display: "flex", gap: 8 }}>
               <input
                 type="password"
                 placeholder="Enter API key"
@@ -159,195 +176,197 @@ const App = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleSaveApiKey()}
                 autoFocus
                 style={{
-                  background: "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: 6,
-                  color: "#e2e8f0",
-                  fontSize: 13,
-                  padding: "6px 10px",
-                  outline: "none",
-                  width: 180,
+                  background: "#1e293b", border: "1px solid #334155", borderRadius: 6,
+                  color: "#e2e8f0", fontSize: 13, padding: "5px 10px", outline: "none", width: 160,
                 }}
               />
-              <button
-                onClick={handleSaveApiKey}
-                style={{ background: "#3b82f6", border: "none", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 13, padding: "6px 12px" }}
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setShowKeyInput(false)}
-                style={{ background: "transparent", border: "1px solid #475569", borderRadius: 6, color: "#94a3b8", cursor: "pointer", fontSize: 13, padding: "6px 10px" }}
-              >
-                Cancel
-              </button>
-            </>
+              <button onClick={handleSaveApiKey} style={btnStyle("#3b82f6")}>Save</button>
+              <button onClick={() => setShowKeyInput(false)} style={btnStyle("transparent", "#475569")}>Cancel</button>
+            </div>
           ) : (
             <button
               onClick={() => setShowKeyInput(true)}
-              title={apiKey ? "API key is set — click to change" : "No API key set — click to configure"}
-              style={{
-                background: "transparent",
-                border: `1px solid ${apiKey ? "#22c55e" : "#475569"}`,
-                borderRadius: 6,
-                color: apiKey ? "#22c55e" : "#94a3b8",
-                cursor: "pointer",
-                fontSize: 13,
-                padding: "6px 12px",
-              }}
+              title={apiKey ? "API key is set — click to change" : "No API key set"}
+              style={btnStyle("transparent", apiKey ? "#22c55e" : "#475569")}
             >
               {apiKey ? "🔒 Key set" : "🔓 Set API key"}
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-        {statuses.map((entry) => (
-          <StatusCard
-            key={entry.id}
-            entry={entry}
-            selected={entry.id === selectedId}
-            onClick={() => setSelectedId(entry.id)}
-            onDelete={handleDelete}
-            uptime={uptimeMap[entry.id] ?? null}
-          />
-        ))}
-      </div>
+      {/* ── Main content ────────────────────────────────────── */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 0,
+        height: "calc(100vh - 60px)",
+      }}>
 
-      {/* Add Target Form */}
-      <form
-        onSubmit={handleAdd}
-        style={{
-          background: "#0f172a",
-          border: "1px solid #1e293b",
-          borderRadius: 8,
-          padding: 20,
-          marginBottom: 32,
-        }}
-      >
-        <p style={{ margin: "0 0 14px", fontWeight: 600, fontSize: 15 }}>
-          Add Monitoring Target
-        </p>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <input
-            type="text"
-            placeholder="Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+        {/* ── Left column: service cards + add form ─────────── */}
+        <div style={{
+          borderRight: "1px solid #1e293b",
+          overflowY: "auto",
+          padding: "24px 28px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}>
+          <p style={{ margin: 0, color: "#475569", fontSize: 13 }}>
+            Click a service to view its response time history.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {statuses.map((entry) => (
+              <StatusCard
+                key={entry.id}
+                entry={entry}
+                selected={entry.id === selectedId}
+                onClick={() => setSelectedId(entry.id)}
+                onDelete={handleDelete}
+                uptime={uptimeMap[entry.id] ?? null}
+              />
+            ))}
+          </div>
+
+          {/* Add target form */}
+          <form
+            onSubmit={handleAdd}
             style={{
-              flex: "1 1 150px",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: 6,
-              color: "#e2e8f0",
-              fontSize: 14,
-              padding: "8px 12px",
-              outline: "none",
-            }}
-          />
-          <input
-            type="text"
-            placeholder="https://example.com"
-            value={newUrl}
-            onChange={(e) => setNewUrl(e.target.value)}
-            style={{
-              flex: "2 1 260px",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: 6,
-              color: "#e2e8f0",
-              fontSize: 14,
-              padding: "8px 12px",
-              outline: "none",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={formLoading}
-            style={{
-              background: formLoading ? "#334155" : "#3b82f6",
-              border: "none",
-              borderRadius: 6,
-              color: "#fff",
-              cursor: formLoading ? "not-allowed" : "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-              padding: "8px 20px",
-              transition: "background 0.15s",
+              background: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: 8,
+              padding: "18px 20px",
+              marginTop: 4,
             }}
           >
-            {formLoading ? "Adding…" : "Add"}
-          </button>
+            <p style={{ margin: "0 0 12px", fontWeight: 600, fontSize: 14, color: "#94a3b8" }}>
+              Add Monitoring Target
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                type="text"
+                placeholder="https://example.com"
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
+                style={inputStyle}
+              />
+              <button
+                type="submit"
+                disabled={formLoading}
+                style={{
+                  background: formLoading ? "#334155" : "#3b82f6",
+                  border: "none", borderRadius: 6, color: "#fff",
+                  cursor: formLoading ? "not-allowed" : "pointer",
+                  fontSize: 14, fontWeight: 600, padding: "9px",
+                }}
+              >
+                {formLoading ? "Adding…" : "Add"}
+              </button>
+            </div>
+            {formError && (
+              <p style={{ color: "#ef4444", fontSize: 13, marginTop: 8, marginBottom: 0 }}>
+                {formError}
+              </p>
+            )}
+          </form>
         </div>
-        {formError && (
-          <p style={{ color: "#ef4444", fontSize: 13, marginTop: 8, marginBottom: 0 }}>
-            {formError}
-          </p>
-        )}
-      </form>
 
-      {selectedTarget && (
-        <div
-          style={{
-            background: "#0f172a",
-            border: "1px solid #1e293b",
-            borderRadius: 8,
-            padding: 24,
-            marginBottom: 32,
-          }}
-        >
-          <UptimeChart name={selectedTarget.name} history={history} />
+        {/* ── Right column: chart + incidents ───────────────── */}
+        <div style={{ overflowY: "auto", padding: "24px 28px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+          {/* Chart */}
+          <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, padding: 24 }}>
+            {selectedTarget ? (
+              <UptimeChart name={selectedTarget.name} history={history} />
+            ) : (
+              <div style={{ color: "#475569", textAlign: "center", padding: 40, fontSize: 14 }}>
+                Select a service to view history
+              </div>
+            )}
+          </div>
+
+          {/* Incident history */}
+          <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 16px", color: "#e2e8f0" }}>
+              Incident History
+            </h2>
+            {incidents.length === 0 ? (
+              <p style={{ color: "#475569", fontSize: 14, margin: 0 }}>No incidents recorded.</p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead>
+                  <tr style={{ color: "#64748b", textAlign: "left" }}>
+                    <th style={{ padding: "6px 12px 10px 0", fontWeight: 600 }}>Service</th>
+                    <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Started</th>
+                    <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Resolved</th>
+                    <th style={{ padding: "6px 0 10px 12px", fontWeight: 600 }}>Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {incidents.map((inc, i) => (
+                    <tr
+                      key={i}
+                      style={{ borderTop: "1px solid #1e293b", color: inc.resolved_at ? "#94a3b8" : "#f87171" }}
+                    >
+                      <td style={{ padding: "8px 12px 8px 0", fontWeight: 500, color: "#e2e8f0" }}>
+                        {inc.target_name}
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>
+                        {new Date(inc.started_at + "Z").toLocaleString("en-GB")}
+                      </td>
+                      <td style={{ padding: "8px 12px" }}>
+                        {inc.resolved_at
+                          ? new Date(inc.resolved_at + "Z").toLocaleString("en-GB")
+                          : <span style={{ color: "#f87171", fontWeight: 600 }}>Ongoing</span>}
+                      </td>
+                      <td style={{ padding: "8px 0 8px 12px" }}>
+                        {inc.duration_minutes !== null
+                          ? inc.duration_minutes < 60
+                            ? `${inc.duration_minutes}m`
+                            : `${Math.floor(inc.duration_minutes / 60)}h ${inc.duration_minutes % 60}m`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Incident History */}
-      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, padding: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px" }}>Incident History</h2>
-        {incidents.length === 0 ? (
-          <p style={{ color: "#64748b", fontSize: 14, margin: 0 }}>No incidents recorded.</p>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ color: "#64748b", textAlign: "left" }}>
-                <th style={{ padding: "6px 12px 10px 0", fontWeight: 600 }}>Service</th>
-                <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Started</th>
-                <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Resolved</th>
-                <th style={{ padding: "6px 0 10px 12px", fontWeight: 600 }}>Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {incidents.map((inc, i) => (
-                <tr
-                  key={i}
-                  style={{ borderTop: "1px solid #1e293b", color: inc.resolved_at ? "#94a3b8" : "#f87171" }}
-                >
-                  <td style={{ padding: "8px 12px 8px 0", fontWeight: 500, color: "#e2e8f0" }}>
-                    {inc.target_name}
-                  </td>
-                  <td style={{ padding: "8px 12px" }}>
-                    {new Date(inc.started_at + "Z").toLocaleString("en-GB")}
-                  </td>
-                  <td style={{ padding: "8px 12px" }}>
-                    {inc.resolved_at
-                      ? new Date(inc.resolved_at + "Z").toLocaleString("en-GB")
-                      : <span style={{ color: "#f87171", fontWeight: 600 }}>Ongoing</span>}
-                  </td>
-                  <td style={{ padding: "8px 0 8px 12px" }}>
-                    {inc.duration_minutes !== null
-                      ? inc.duration_minutes < 60
-                        ? `${inc.duration_minutes}m`
-                        : `${Math.floor(inc.duration_minutes / 60)}h ${inc.duration_minutes % 60}m`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
     </div>
   );
 };
+
+// ── Shared style helpers ───────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  background: "#1e293b",
+  border: "1px solid #334155",
+  borderRadius: 6,
+  color: "#e2e8f0",
+  fontSize: 14,
+  padding: "8px 12px",
+  outline: "none",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+const btnStyle = (bg: string, borderColor?: string): React.CSSProperties => ({
+  background: bg,
+  border: `1px solid ${borderColor ?? bg}`,
+  borderRadius: 6,
+  color: borderColor ?? "#fff",
+  cursor: "pointer",
+  fontSize: 13,
+  padding: "5px 12px",
+});
 
 export default App;
