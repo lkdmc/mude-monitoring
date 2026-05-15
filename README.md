@@ -22,22 +22,24 @@ Uptime monitoring dashboard for TU Delft MUDE course infrastructure. Checks HTTP
 ## Architecture
 
 ```
-Browser
+Browser (HTTPS only)
   │
-  ├── GET /           → React dashboard (admin, requires API key for writes)
-  └── GET /status     → React public status page (read-only)
-         │
-         │  nginx (port 3000)
-         │    ├── /api/*  → proxy → Express backend (port 3001)
-         │    └── /*      → serve index.html (SPA routing)
-         │
-         └── Express API (port 3001)
-               ├── SQLite database  (/app/data/monitoring.db, persisted via Docker volume)
-               ├── Cron checker     (runs every 5 minutes)
-               ├── AWS SNS          (email alerts)
-               └── Teams webhook    (optional)
+  │  Host nginx — Let's Encrypt TLS (port 443)
+  │    ├── HTTP 80 → redirect to HTTPS
+  │    └── HTTPS 443 → proxy → localhost:3000
+  │
+  │  Docker: nginx (localhost:3000, internal only)
+  │    ├── GET /           → React dashboard (admin, API key required for writes)
+  │    ├── GET /status     → React public status page (read-only)
+  │    └── /api/*          → proxy → Express backend (localhost:3001, internal only)
+  │
+  └── Docker: Express API (localhost:3001, internal only)
+        ├── SQLite database  (/app/data/monitoring.db, persisted via Docker volume)
+        ├── Cron checker     (runs every 5 minutes)
+        ├── AWS SNS          (email alerts)
+        └── Teams webhook    (optional)
 
-Deployment: AWS EC2 (eu-west-1)
+Deployment: AWS EC2 (eu-west-1) — https://mude-monitor.duckdns.org
 CI/CD:      GitHub Actions → SSH → docker compose up
 ```
 
@@ -143,12 +145,12 @@ terraform apply
 This creates:
 - EC2 `t3.micro` in eu-west-1
 - IAM instance profile with SNS permissions (no access keys needed)
-- Security Group opening ports 22, 3000, 3001
+- Security Group opening ports 22 (SSH), 80 (HTTP), 443 (HTTPS)
 
 ### First-time server setup
 
 ```bash
-ssh ubuntu@<EC2_HOST>
+ssh ubuntu@<EC2_IP>
 
 # Install Docker
 curl -fsSL https://get.docker.com | sh
@@ -161,9 +163,52 @@ cd ~/mude-monitoring
 # Create .env (see Environment Variables below)
 nano .env
 
-# Start
+# Start containers
 docker compose up -d --build
 ```
+
+### HTTPS setup (DuckDNS + Let's Encrypt)
+
+1. Register a free subdomain at [duckdns.org](https://www.duckdns.org) and point it to your EC2 IP.
+
+2. On the EC2 instance:
+
+```bash
+# Install host nginx + certbot
+sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx
+
+# Configure nginx reverse proxy
+sudo tee /etc/nginx/sites-available/mude-monitor << 'EOF'
+server {
+    listen 80;
+    server_name mude-monitor.duckdns.org;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/mude-monitor /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl restart nginx
+
+# Issue certificate (certbot auto-configures HTTPS + HTTP redirect)
+sudo certbot --nginx -d mude-monitor.duckdns.org --preferred-challenges http
+```
+
+3. Update `.env` to use the HTTPS URL:
+
+```bash
+sed -i 's|EC2_HOST=.*|EC2_HOST=https://mude-monitor.duckdns.org|' .env
+sed -i 's|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=https://mude-monitor.duckdns.org|' .env
+docker compose down && docker compose up -d
+```
+
+Certificates renew automatically via a certbot cron job (expires every 90 days).
 
 ### CI/CD (GitHub Actions)
 
@@ -192,14 +237,14 @@ Create `/home/ubuntu/mude-monitoring/.env` on the server:
 SNS_TOPIC_ARN=arn:aws:sns:eu-west-1:123456789012:mude-monitoring-alerts
 
 # Public hostname (used in alert email links)
-EC2_HOST=http://63.35.197.214:3000
+EC2_HOST=https://mude-monitor.duckdns.org
 
 # API key — required to add/delete targets via the dashboard
 # Generate with: openssl rand -hex 32
 API_KEY=your-strong-random-key-here
 
 # CORS — comma-separated list of allowed frontend origins
-ALLOWED_ORIGINS=http://63.35.197.214:3000
+ALLOWED_ORIGINS=https://mude-monitor.duckdns.org
 
 # Microsoft Teams webhook (optional — omit to disable Teams alerts)
 TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/...
@@ -240,7 +285,7 @@ Changes here require a redeploy. SNS subscriptions are synced automatically on s
 
 ## API Reference
 
-Base URL: `http://<host>:3000/api` (proxied through nginx) or `http://<host>:3001/api` (direct)
+Base URL: `https://mude-monitor.duckdns.org/api`
 
 ### Public endpoints (no auth required)
 
@@ -294,7 +339,7 @@ Click the **✕** button on any status card. A confirmation dialog appears befor
 
 ## Public Status Page
 
-Accessible at `http://<host>:3000/status` — no login required.
+Accessible at `https://mude-monitor.duckdns.org/status` — no login required.
 
 - Shows overall system health banner (green / red / amber)
 - Lists each service with UP/DOWN status and 24h/7d uptime
