@@ -50,3 +50,14 @@ export const removeTarget = async (id: number): Promise<void> => {
   const json = await res.json();
   if (!json.success) throw new Error(json.error);
 };
+
+export type UptimeEntry = {
+  uptime_24h: number | null;
+  uptime_7d: number | null;
+};
+
+export const fetchUptime = async (id: number): Promise<UptimeEntry> => {
+  const res = await fetch(`${BASE}/uptime/${id}`);
+  const json = await res.json();
+  return json.data;
+};

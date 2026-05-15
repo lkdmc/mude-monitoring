@@ -127,3 +127,19 @@ export const getLastTwoChecks = (targetId: number) =>
     `SELECT is_up FROM checks WHERE target_id = ? ORDER BY checked_at DESC LIMIT 2`,
     [targetId]
   );
+
+export type UptimeResult = { uptime_24h: number | null; uptime_7d: number | null };
+
+export const getUptime = (targetId: number): UptimeResult => {
+  const row = query<UptimeResult>(
+    `SELECT
+       ROUND(100.0 * SUM(CASE WHEN checked_at >= datetime('now', '-24 hours') AND is_up = 1 THEN 1 ELSE 0 END)
+             / NULLIF(SUM(CASE WHEN checked_at >= datetime('now', '-24 hours') THEN 1 ELSE 0 END), 0), 1) AS uptime_24h,
+       ROUND(100.0 * SUM(CASE WHEN checked_at >= datetime('now', '-7 days') AND is_up = 1 THEN 1 ELSE 0 END)
+             / NULLIF(SUM(CASE WHEN checked_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END), 0), 1) AS uptime_7d
+     FROM checks
+     WHERE target_id = ?`,
+    [targetId]
+  );
+  return row[0] ?? { uptime_24h: null, uptime_7d: null };
+};

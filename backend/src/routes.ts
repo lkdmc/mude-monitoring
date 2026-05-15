@@ -6,6 +6,7 @@ import {
   getTargetById,
   createTarget,
   deleteTarget,
+  getUptime,
 } from "./db";
 import { checkTarget } from "./checker";
 
@@ -31,6 +32,20 @@ router.get("/history/:id", (req: Request, res: Response) => {
     return;
   }
   res.json({ success: true, data: getHistory(id) });
+});
+
+router.get("/uptime/:id", (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ success: false, error: "Invalid target id" });
+    return;
+  }
+  const target = getTargetById(id);
+  if (!target) {
+    res.status(404).json({ success: false, error: "Target not found" });
+    return;
+  }
+  res.json({ success: true, data: getUptime(id) });
 });
 
 router.post("/targets", (req: Request, res: Response) => {

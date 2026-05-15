@@ -1,13 +1,21 @@
-import { StatusEntry } from "../api";
+import { StatusEntry, UptimeEntry } from "../api";
 
 type Props = {
   entry: StatusEntry;
   selected: boolean;
   onClick: () => void;
   onDelete: (id: number) => void;
+  uptime: UptimeEntry | null;
 };
 
-const StatusCard = ({ entry, selected, onClick, onDelete }: Props) => {
+const uptimeColor = (pct: number | null) => {
+  if (pct === null) return "#475569";
+  if (pct >= 99) return "#16a34a";
+  if (pct >= 90) return "#ca8a04";
+  return "#dc2626";
+};
+
+const StatusCard = ({ entry, selected, onClick, onDelete, uptime }: Props) => {
   const isUp = entry.is_up === 1;
   const hasData = entry.checked_at !== null;
 
@@ -73,8 +81,18 @@ const StatusCard = ({ entry, selected, onClick, onDelete }: Props) => {
           </button>
         </div>
       </div>
-      <div style={{ marginTop: 8, fontSize: 13, color: "#94a3b8" }}>
+      <div style={{ marginTop: 8, fontSize: 13, color: "#94a3b8", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span>{entry.url}</span>
+        {uptime && (
+          <div style={{ display: "flex", gap: 8, flexShrink: 0, marginLeft: 12 }}>
+            <span style={{ background: uptimeColor(uptime.uptime_24h), color: "#fff", borderRadius: 6, padding: "1px 8px", fontSize: 12, fontWeight: 600 }}>
+              24h: {uptime.uptime_24h !== null ? `${uptime.uptime_24h}%` : "—"}
+            </span>
+            <span style={{ background: uptimeColor(uptime.uptime_7d), color: "#fff", borderRadius: 6, padding: "1px 8px", fontSize: 12, fontWeight: 600 }}>
+              7d: {uptime.uptime_7d !== null ? `${uptime.uptime_7d}%` : "—"}
+            </span>
+          </div>
+        )}
       </div>
       {hasData && (
         <div style={{ marginTop: 6, fontSize: 13, color: "#64748b" }}>

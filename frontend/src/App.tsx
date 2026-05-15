@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import {
   fetchStatus,
   fetchHistory,
+  fetchUptime,
   addTarget,
   removeTarget,
   StatusEntry,
   HistoryEntry,
+  UptimeEntry,
 } from "./api";
 import StatusCard from "./components/StatusCard";
 import UptimeChart from "./components/UptimeChart";
@@ -17,6 +19,7 @@ const App = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [uptimeMap, setUptimeMap] = useState<Record<number, UptimeEntry>>({});
 
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
@@ -30,6 +33,14 @@ const App = () => {
     if (selectedId === null && data.length > 0) {
       setSelectedId(data[0].id);
     }
+    const entries = await Promise.all(
+      data.map((s) => fetchUptime(s.id).then((u) => ({ id: s.id, uptime: u })))
+    );
+    setUptimeMap(
+      entries.reduce<Record<number, UptimeEntry>>((acc, { id, uptime }) => {
+        return { ...acc, [id]: uptime };
+      }, {})
+    );
   };
 
   const loadHistory = async (id: number) => {
@@ -125,6 +136,7 @@ const App = () => {
             selected={entry.id === selectedId}
             onClick={() => setSelectedId(entry.id)}
             onDelete={handleDelete}
+            uptime={uptimeMap[entry.id] ?? null}
           />
         ))}
       </div>
