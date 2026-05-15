@@ -11,6 +11,7 @@ services:
       - DB_PATH=/app/data/monitoring.db
       - AWS_REGION=eu-west-1
       - SNS_TOPIC_ARN=${SNS_TOPIC_ARN}
+      - EC2_HOST=${EC2_HOST}
 
   frontend:
     build: ./frontend
