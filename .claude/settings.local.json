@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(aws --version)",
+      "Bash(terraform --version)",
+      "Bash(docker --version)",
+      "Bash(aws sts *)"
+    ]
+  }
+}
