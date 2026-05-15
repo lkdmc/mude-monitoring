@@ -42,13 +42,11 @@ export const initDb = async (): Promise<void> => {
     );
   `);
 
+  // Seed default targets from targets.json (INSERT OR IGNORE — never delete UI-added targets)
   const targetsFile = path.join(__dirname, "../targets.json");
   const targets: { name: string; url: string }[] = JSON.parse(
     fs.readFileSync(targetsFile, "utf-8")
   );
-
-  const activeUrls = targets.map((t) => `'${t.url}'`).join(", ");
-  db.run(`DELETE FROM targets WHERE url NOT IN (${activeUrls})`);
 
   const insert = db.prepare(
     "INSERT OR IGNORE INTO targets (name, url) VALUES (?, ?)"
@@ -129,6 +127,61 @@ export const getLastTwoChecks = (targetId: number) =>
   );
 
 export type UptimeResult = { uptime_24h: number | null; uptime_7d: number | null };
+
+export type Incident = {
+  target_id: number;
+  target_name: string;
+  started_at: string;
+  resolved_at: string | null;
+  duration_minutes: number | null;
+};
+
+export const getIncidents = (): Incident[] => {
+  type CheckRow = {
+    target_id: number;
+    target_name: string;
+    is_up: number;
+    checked_at: string;
+  };
+
+  const rows = query<CheckRow>(
+    `SELECT c.target_id, t.name AS target_name, c.is_up, c.checked_at
+     FROM checks c
+     JOIN targets t ON c.target_id = t.id
+     ORDER BY c.target_id, c.checked_at ASC`
+  );
+
+  const incidents: Incident[] = [];
+  const open: Record<number, { target_name: string; started_at: string }> = {};
+
+  for (const { target_id, target_name, is_up, checked_at } of rows) {
+    if (is_up === 0 && !open[target_id]) {
+      open[target_id] = { target_name, started_at: checked_at };
+    } else if (is_up === 1 && open[target_id]) {
+      const { started_at } = open[target_id];
+      const duration_minutes = Math.round(
+        (new Date(checked_at + "Z").getTime() - new Date(started_at + "Z").getTime()) / 60_000
+      );
+      incidents.push({ target_id, target_name, started_at, resolved_at: checked_at, duration_minutes });
+      delete open[target_id];
+    }
+  }
+
+  // Ongoing incidents (still DOWN)
+  for (const [id, { target_name, started_at }] of Object.entries(open)) {
+    incidents.push({
+      target_id: Number(id),
+      target_name,
+      started_at,
+      resolved_at: null,
+      duration_minutes: null,
+    });
+  }
+
+  return incidents.sort(
+    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+  );
+};
 
 export const getUptime = (targetId: number): UptimeResult => {
   const row = query<UptimeResult>(

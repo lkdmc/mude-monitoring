@@ -3,6 +3,7 @@ import {
   fetchStatus,
   fetchHistory,
   fetchUptime,
+  fetchIncidents,
   addTarget,
   removeTarget,
   getApiKey,
@@ -10,6 +11,7 @@ import {
   StatusEntry,
   HistoryEntry,
   UptimeEntry,
+  Incident,
 } from "./api";
 import StatusCard from "./components/StatusCard";
 import UptimeChart from "./components/UptimeChart";
@@ -22,6 +24,7 @@ const App = () => {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uptimeMap, setUptimeMap] = useState<Record<number, UptimeEntry>>({});
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
@@ -47,6 +50,8 @@ const App = () => {
         return { ...acc, [id]: uptime };
       }, {})
     );
+    const incidentData = await fetchIncidents();
+    setIncidents(incidentData);
   };
 
   const loadHistory = async (id: number) => {
@@ -289,11 +294,58 @@ const App = () => {
             border: "1px solid #1e293b",
             borderRadius: 8,
             padding: 24,
+            marginBottom: 32,
           }}
         >
           <UptimeChart name={selectedTarget.name} history={history} />
         </div>
       )}
+
+      {/* Incident History */}
+      <div style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: 8, padding: 24 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 16px" }}>Incident History</h2>
+        {incidents.length === 0 ? (
+          <p style={{ color: "#64748b", fontSize: 14, margin: 0 }}>No incidents recorded.</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ color: "#64748b", textAlign: "left" }}>
+                <th style={{ padding: "6px 12px 10px 0", fontWeight: 600 }}>Service</th>
+                <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Started</th>
+                <th style={{ padding: "6px 12px 10px", fontWeight: 600 }}>Resolved</th>
+                <th style={{ padding: "6px 0 10px 12px", fontWeight: 600 }}>Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {incidents.map((inc, i) => (
+                <tr
+                  key={i}
+                  style={{ borderTop: "1px solid #1e293b", color: inc.resolved_at ? "#94a3b8" : "#f87171" }}
+                >
+                  <td style={{ padding: "8px 12px 8px 0", fontWeight: 500, color: "#e2e8f0" }}>
+                    {inc.target_name}
+                  </td>
+                  <td style={{ padding: "8px 12px" }}>
+                    {new Date(inc.started_at + "Z").toLocaleString("en-GB")}
+                  </td>
+                  <td style={{ padding: "8px 12px" }}>
+                    {inc.resolved_at
+                      ? new Date(inc.resolved_at + "Z").toLocaleString("en-GB")
+                      : <span style={{ color: "#f87171", fontWeight: 600 }}>Ongoing</span>}
+                  </td>
+                  <td style={{ padding: "8px 0 8px 12px" }}>
+                    {inc.duration_minutes !== null
+                      ? inc.duration_minutes < 60
+                        ? `${inc.duration_minutes}m`
+                        : `${Math.floor(inc.duration_minutes / 60)}h ${inc.duration_minutes % 60}m`
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 };

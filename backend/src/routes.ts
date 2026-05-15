@@ -7,6 +7,7 @@ import {
   createTarget,
   deleteTarget,
   getUptime,
+  getIncidents,
 } from "./db";
 import { checkTarget } from "./checker";
 import { requireApiKey, writeLimiter } from "./middleware";
@@ -47,6 +48,10 @@ router.get("/uptime/:id", (req: Request, res: Response) => {
     return;
   }
   res.json({ success: true, data: getUptime(id) });
+});
+
+router.get("/incidents", (_req: Request, res: Response) => {
+  res.json({ success: true, data: getIncidents() });
 });
 
 router.post("/targets", writeLimiter, requireApiKey, (req: Request, res: Response) => {

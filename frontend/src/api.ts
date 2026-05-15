@@ -67,8 +67,22 @@ export type UptimeEntry = {
   uptime_7d: number | null;
 };
 
+export type Incident = {
+  target_id: number;
+  target_name: string;
+  started_at: string;
+  resolved_at: string | null;
+  duration_minutes: number | null;
+};
+
 export const fetchUptime = async (id: number): Promise<UptimeEntry> => {
   const res = await fetch(`${BASE}/uptime/${id}`);
+  const json = await res.json();
+  return json.data;
+};
+
+export const fetchIncidents = async (): Promise<Incident[]> => {
+  const res = await fetch(`${BASE}/incidents`);
   const json = await res.json();
   return json.data;
 };
