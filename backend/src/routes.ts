@@ -9,6 +9,7 @@ import {
   getUptime,
 } from "./db";
 import { checkTarget } from "./checker";
+import { requireApiKey, writeLimiter } from "./middleware";
 
 const router = Router();
 
@@ -48,7 +49,7 @@ router.get("/uptime/:id", (req: Request, res: Response) => {
   res.json({ success: true, data: getUptime(id) });
 });
 
-router.post("/targets", (req: Request, res: Response) => {
+router.post("/targets", writeLimiter, requireApiKey, (req: Request, res: Response) => {
   const { name, url } = req.body;
 
   if (!name || typeof name !== "string" || name.trim() === "") {
@@ -82,7 +83,7 @@ router.post("/targets", (req: Request, res: Response) => {
   }
 });
 
-router.delete("/targets/:id", (req: Request, res: Response) => {
+router.delete("/targets/:id", writeLimiter, requireApiKey, (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) {
     res.status(400).json({ success: false, error: "Invalid target id" });

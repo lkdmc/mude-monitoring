@@ -5,6 +5,8 @@ import {
   fetchUptime,
   addTarget,
   removeTarget,
+  getApiKey,
+  setApiKey,
   StatusEntry,
   HistoryEntry,
   UptimeEntry,
@@ -25,6 +27,10 @@ const App = () => {
   const [newUrl, setNewUrl] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [formLoading, setFormLoading] = useState(false);
+
+  const [apiKey, setApiKeyState] = useState<string>(getApiKey);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const loadStatus = async () => {
     const data = await fetchStatus();
@@ -89,6 +95,13 @@ const App = () => {
     }
   };
 
+  const handleSaveApiKey = () => {
+    setApiKey(apiKeyInput.trim());
+    setApiKeyState(apiKeyInput.trim());
+    setApiKeyInput("");
+    setShowKeyInput(false);
+  };
+
   const handleDelete = async (id: number) => {
     try {
       await removeTarget(id);
@@ -116,16 +129,72 @@ const App = () => {
         margin: "0 auto",
       }}
     >
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>
-          MUDE Platform Monitor
-        </h1>
-        <p style={{ color: "#64748b", marginTop: 6, fontSize: 14 }}>
-          TU Delft platform uptime — refreshes every 30s
-          {lastUpdated && (
-            <span> · Last updated: {lastUpdated.toLocaleTimeString("en-GB")}</span>
+      <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>
+            MUDE Platform Monitor
+          </h1>
+          <p style={{ color: "#64748b", marginTop: 6, fontSize: 14 }}>
+            TU Delft platform uptime — refreshes every 30s
+            {lastUpdated && (
+              <span> · Last updated: {lastUpdated.toLocaleTimeString("en-GB")}</span>
+            )}
+          </p>
+        </div>
+
+        {/* API key management */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+          {showKeyInput ? (
+            <>
+              <input
+                type="password"
+                placeholder="Enter API key"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSaveApiKey()}
+                autoFocus
+                style={{
+                  background: "#1e293b",
+                  border: "1px solid #334155",
+                  borderRadius: 6,
+                  color: "#e2e8f0",
+                  fontSize: 13,
+                  padding: "6px 10px",
+                  outline: "none",
+                  width: 180,
+                }}
+              />
+              <button
+                onClick={handleSaveApiKey}
+                style={{ background: "#3b82f6", border: "none", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 13, padding: "6px 12px" }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowKeyInput(false)}
+                style={{ background: "transparent", border: "1px solid #475569", borderRadius: 6, color: "#94a3b8", cursor: "pointer", fontSize: 13, padding: "6px 10px" }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowKeyInput(true)}
+              title={apiKey ? "API key is set — click to change" : "No API key set — click to configure"}
+              style={{
+                background: "transparent",
+                border: `1px solid ${apiKey ? "#22c55e" : "#475569"}`,
+                borderRadius: 6,
+                color: apiKey ? "#22c55e" : "#94a3b8",
+                cursor: "pointer",
+                fontSize: 13,
+                padding: "6px 12px",
+              }}
+            >
+              {apiKey ? "🔒 Key set" : "🔓 Set API key"}
+            </button>
           )}
-        </p>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>

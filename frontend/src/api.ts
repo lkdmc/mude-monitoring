@@ -1,5 +1,13 @@
 const BASE = "/api";
 
+export const getApiKey = (): string => localStorage.getItem("apiKey") ?? "";
+export const setApiKey = (key: string): void => localStorage.setItem("apiKey", key);
+
+const authHeaders = (): Record<string, string> => {
+  const key = getApiKey();
+  return key ? { "X-Api-Key": key } : {};
+};
+
 export type Target = {
   id: number;
   name: string;
@@ -38,7 +46,7 @@ export const fetchHistory = async (id: number): Promise<HistoryEntry[]> => {
 export const addTarget = async (name: string, url: string): Promise<void> => {
   const res = await fetch(`${BASE}/targets`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify({ name, url }),
   });
   const json = await res.json();
@@ -46,7 +54,10 @@ export const addTarget = async (name: string, url: string): Promise<void> => {
 };
 
 export const removeTarget = async (id: number): Promise<void> => {
-  const res = await fetch(`${BASE}/targets/${id}`, { method: "DELETE" });
+  const res = await fetch(`${BASE}/targets/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   const json = await res.json();
   if (!json.success) throw new Error(json.error);
 };
