@@ -7,6 +7,7 @@ import {
   createTarget,
   deleteTarget,
 } from "./db";
+import { checkTarget } from "./checker";
 
 const router = Router();
 
@@ -46,6 +47,15 @@ router.post("/targets", (req: Request, res: Response) => {
 
   try {
     createTarget(name.trim(), url.trim());
+
+    // Fire-and-forget immediate check so the new target doesn't stay PENDING
+    const newTarget = getAllTargets().find((t) => t.url === url.trim());
+    if (newTarget) {
+      checkTarget(newTarget).catch((err) =>
+        console.error(`[Checker] Immediate check failed for ${newTarget.name}:`, err)
+      );
+    }
+
     res.json({ success: true });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

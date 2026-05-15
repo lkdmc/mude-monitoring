@@ -31,7 +31,7 @@ const sendDownAlert = async (name: string, url: string): Promise<void> => {
   }
 };
 
-const checkTarget = async (target: Target): Promise<void> => {
+export const checkTarget = async (target: Target): Promise<void> => {
   const start = Date.now();
   try {
     const response = await fetch(target.url, { signal: AbortSignal.timeout(10000) });
