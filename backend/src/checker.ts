@@ -6,7 +6,7 @@ type Target = { id: number; name: string; url: string };
 
 const snsClient = new SNSClient({ region: process.env.AWS_REGION || "eu-west-1" });
 
-const sendAlert = async (
+const sendSnsAlert = async (
   name: string,
   url: string,
   type: "DOWN" | "UP"
@@ -15,18 +15,15 @@ const sendAlert = async (
   if (!topicArn) return;
 
   const isDown = type === "DOWN";
-  const subject = isDown
-    ? `[MUDE Monitor] ${name} is DOWN`
-    : `[MUDE Monitor] ${name} recovered (UP)`;
-  const headline = isDown ? "Platform DOWN detected" : "Platform recovery detected";
-
   try {
     await snsClient.send(
       new PublishCommand({
         TopicArn: topicArn,
-        Subject: subject,
+        Subject: isDown
+          ? `[MUDE Monitor] ${name} is DOWN`
+          : `[MUDE Monitor] ${name} recovered (UP)`,
         Message: [
-          headline,
+          isDown ? "Platform DOWN detected" : "Platform recovery detected",
           ``,
           `Service : ${name}`,
           `URL     : ${url}`,
@@ -40,6 +37,63 @@ const sendAlert = async (
   } catch (err) {
     console.error(`[SNS] Failed to send ${type} alert for ${name}:`, err);
   }
+};
+
+const sendTeamsAlert = async (
+  name: string,
+  url: string,
+  type: "DOWN" | "UP"
+): Promise<void> => {
+  const webhookUrl = process.env.TEAMS_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const isDown = type === "DOWN";
+  const color = isDown ? "FF0000" : "00C851";
+  const title = isDown ? `🔴 ${name} is DOWN` : `🟢 ${name} recovered (UP)`;
+  const dashboardUrl = `http://${process.env.EC2_HOST || "localhost"}:3000`;
+
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        "@type": "MessageCard",
+        "@context": "https://schema.org/extensions",
+        themeColor: color,
+        summary: title,
+        sections: [
+          {
+            activityTitle: title,
+            facts: [
+              { name: "Service", value: name },
+              { name: "URL", value: url },
+              { name: "Time", value: new Date().toISOString() },
+            ],
+          },
+        ],
+        potentialAction: [
+          {
+            "@type": "OpenUri",
+            name: "Open Dashboard",
+            targets: [{ os: "default", uri: dashboardUrl }],
+          },
+        ],
+      }),
+    });
+  } catch (err) {
+    console.error(`[Teams] Failed to send ${type} alert for ${name}:`, err);
+  }
+};
+
+const sendAlert = async (
+  name: string,
+  url: string,
+  type: "DOWN" | "UP"
+): Promise<void> => {
+  await Promise.all([
+    sendSnsAlert(name, url, type),
+    sendTeamsAlert(name, url, type),
+  ]);
 };
 
 export const checkTarget = async (target: Target): Promise<void> => {

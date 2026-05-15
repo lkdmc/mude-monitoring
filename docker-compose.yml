@@ -14,6 +14,7 @@ services:
       - EC2_HOST=${EC2_HOST}
       - API_KEY=${API_KEY}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
 
   frontend:
     build: ./frontend
