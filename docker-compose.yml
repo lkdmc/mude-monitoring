@@ -12,6 +12,8 @@ services:
       - AWS_REGION=eu-west-1
       - SNS_TOPIC_ARN=${SNS_TOPIC_ARN}
       - EC2_HOST=${EC2_HOST}
+      - API_KEY=${API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
 
   frontend:
     build: ./frontend
