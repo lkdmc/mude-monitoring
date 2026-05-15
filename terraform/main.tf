@@ -124,12 +124,6 @@ resource "aws_sns_topic" "alerts" {
   name = "mude-monitoring-alerts"
 }
 
-resource "aws_sns_topic_subscription" "email" {
-  for_each  = toset(var.alert_emails)
-  topic_arn = aws_sns_topic.alerts.arn
-  protocol  = "email"
-  endpoint  = each.value
-}
 
 # ── CloudWatch Alarms ─────────────────────────────────────────
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {

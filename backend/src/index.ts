@@ -3,11 +3,13 @@ import cors from "cors";
 import { initDb } from "./db";
 import router from "./routes";
 import { startChecker } from "./checker";
+import { syncSubscriptions } from "./subscriptions";
 
 const PORT = process.env.PORT || 3001;
 
 const main = async () => {
   await initDb();
+  await syncSubscriptions();
 
   const app = express();
   app.use(cors());
