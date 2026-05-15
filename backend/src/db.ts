@@ -42,6 +42,8 @@ export const initDb = async (): Promise<void> => {
     );
   `);
 
+  db.run("DELETE FROM targets WHERE url = 'https://didata.tudelft.nl'");
+
   const insert = db.prepare(
     "INSERT OR IGNORE INTO targets (name, url) VALUES (?, ?)"
   );
