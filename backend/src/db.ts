@@ -42,15 +42,20 @@ export const initDb = async (): Promise<void> => {
     );
   `);
 
-  db.run("DELETE FROM targets WHERE url = 'https://didata.tudelft.nl'");
+  const targetsFile = path.join(__dirname, "../../targets.json");
+  const targets: { name: string; url: string }[] = JSON.parse(
+    fs.readFileSync(targetsFile, "utf-8")
+  );
+
+  const activeUrls = targets.map((t) => `'${t.url}'`).join(", ");
+  db.run(`DELETE FROM targets WHERE url NOT IN (${activeUrls})`);
 
   const insert = db.prepare(
     "INSERT OR IGNORE INTO targets (name, url) VALUES (?, ?)"
   );
-  insert.run(["MUDE Course Website", "https://mude.citg.tudelft.nl"]);
-  insert.run(["Content Archival System", "https://mude.citg.tudelft.nl/archive"]);
-  insert.run(["Jupyter Publishing Pipeline", "https://mude.citg.tudelft.nl/book"]);
-  insert.run(["diData - Test Webpage", "https://edu01.citg.tudelft.nl"]);
+  for (const target of targets) {
+    insert.run([target.name, target.url]);
+  }
   insert.free();
 
   save();
