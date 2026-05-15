@@ -48,7 +48,6 @@ export const initDb = async (): Promise<void> => {
   insert.run(["MUDE Course Website", "https://mude.citg.tudelft.nl"]);
   insert.run(["Content Archival System", "https://mude.citg.tudelft.nl/archive"]);
   insert.run(["Jupyter Publishing Pipeline", "https://mude.citg.tudelft.nl/book"]);
-  insert.run(["diData - Grade overview platform", "https://didata.tudelft.nl"]);
   insert.run(["diData - Test Webpage", "https://edu01.citg.tudelft.nl"]);
   insert.free();
 
