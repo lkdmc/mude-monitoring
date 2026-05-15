@@ -42,7 +42,7 @@ export const initDb = async (): Promise<void> => {
     );
   `);
 
-  const targetsFile = path.join(__dirname, "../../targets.json");
+  const targetsFile = path.join(__dirname, "../targets.json");
   const targets: { name: string; url: string }[] = JSON.parse(
     fs.readFileSync(targetsFile, "utf-8")
   );

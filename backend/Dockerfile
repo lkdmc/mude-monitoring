@@ -20,6 +20,7 @@ RUN mkdir -p /app/data
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
+COPY targets.json ./
 
 EXPOSE 3001
 
