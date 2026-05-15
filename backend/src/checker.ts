@@ -6,20 +6,31 @@ type Target = { id: number; name: string; url: string };
 
 const snsClient = new SNSClient({ region: process.env.AWS_REGION || "eu-west-1" });
 
-const sendDownAlert = async (name: string, url: string): Promise<void> => {
+const sendAlert = async (
+  name: string,
+  url: string,
+  type: "DOWN" | "UP"
+): Promise<void> => {
   const topicArn = process.env.SNS_TOPIC_ARN;
   if (!topicArn) return;
+
+  const isDown = type === "DOWN";
+  const subject = isDown
+    ? `[MUDE Monitor] ${name} is DOWN`
+    : `[MUDE Monitor] ${name} recovered (UP)`;
+  const headline = isDown ? "Platform DOWN detected" : "Platform recovery detected";
 
   try {
     await snsClient.send(
       new PublishCommand({
         TopicArn: topicArn,
-        Subject: `[MUDE Monitor] ${name} is DOWN`,
+        Subject: subject,
         Message: [
-          `Platform DOWN detected`,
+          headline,
           ``,
           `Service : ${name}`,
           `URL     : ${url}`,
+          `Status  : ${type}`,
           `Time    : ${new Date().toISOString()}`,
           ``,
           `Dashboard: http://${process.env.EC2_HOST || "localhost"}:3000`,
@@ -27,7 +38,7 @@ const sendDownAlert = async (name: string, url: string): Promise<void> => {
       })
     );
   } catch (err) {
-    console.error(`[SNS] Failed to send alert for ${name}:`, err);
+    console.error(`[SNS] Failed to send ${type} alert for ${name}:`, err);
   }
 };
 
@@ -52,9 +63,15 @@ export const checkTarget = async (target: Target): Promise<void> => {
     current?.is_up === 0 &&
     (previous === undefined || previous.is_up === 1);
 
+  const justRecovered =
+    current?.is_up === 1 && previous?.is_up === 0;
+
   if (justWentDown) {
     console.log(`[${target.name}] Transition UP -> DOWN, sending alert`);
-    await sendDownAlert(target.name, target.url);
+    await sendAlert(target.name, target.url, "DOWN");
+  } else if (justRecovered) {
+    console.log(`[${target.name}] Transition DOWN -> UP, sending recovery alert`);
+    await sendAlert(target.name, target.url, "UP");
   }
 };
 
