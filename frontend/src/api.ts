@@ -34,3 +34,19 @@ export const fetchHistory = async (id: number): Promise<HistoryEntry[]> => {
   const json = await res.json();
   return json.data;
 };
+
+export const addTarget = async (name: string, url: string): Promise<void> => {
+  const res = await fetch(`${BASE}/targets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, url }),
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error);
+};
+
+export const removeTarget = async (id: number): Promise<void> => {
+  const res = await fetch(`${BASE}/targets/${id}`, { method: "DELETE" });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error);
+};

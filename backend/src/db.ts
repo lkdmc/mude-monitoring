@@ -111,6 +111,17 @@ export const getHistory = (targetId: number) =>
 export const getTargetById = (id: number) =>
   query("SELECT * FROM targets WHERE id = ?", [id])[0] ?? null;
 
+export const createTarget = (name: string, url: string): void => {
+  db.run("INSERT INTO targets (name, url) VALUES (?, ?)", [name, url]);
+  save();
+};
+
+export const deleteTarget = (id: number): void => {
+  db.run("DELETE FROM checks WHERE target_id = ?", [id]);
+  db.run("DELETE FROM targets WHERE id = ?", [id]);
+  save();
+};
+
 export const getLastTwoChecks = (targetId: number) =>
   query<{ is_up: number }>(
     `SELECT is_up FROM checks WHERE target_id = ? ORDER BY checked_at DESC LIMIT 2`,

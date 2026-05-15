@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchStatus, fetchHistory, StatusEntry, HistoryEntry } from "./api";
+import {
+  fetchStatus,
+  fetchHistory,
+  addTarget,
+  removeTarget,
+  StatusEntry,
+  HistoryEntry,
+} from "./api";
 import StatusCard from "./components/StatusCard";
 import UptimeChart from "./components/UptimeChart";
 
@@ -10,6 +17,11 @@ const App = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const [newName, setNewName] = useState("");
+  const [newUrl, setNewUrl] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formLoading, setFormLoading] = useState(false);
 
   const loadStatus = async () => {
     const data = await fetchStatus();
@@ -36,6 +48,48 @@ const App = () => {
       loadHistory(selectedId);
     }
   }, [selectedId]);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    const trimmedName = newName.trim();
+    const trimmedUrl = newUrl.trim();
+
+    if (!trimmedName) {
+      setFormError("Name is required.");
+      return;
+    }
+    if (!trimmedUrl.startsWith("http")) {
+      setFormError("URL must start with http:// or https://");
+      return;
+    }
+
+    setFormLoading(true);
+    try {
+      await addTarget(trimmedName, trimmedUrl);
+      setNewName("");
+      setNewUrl("");
+      await loadStatus();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to add target.");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await removeTarget(id);
+      if (selectedId === id) {
+        setSelectedId(null);
+        setHistory([]);
+      }
+      await loadStatus();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to remove target.");
+    }
+  };
 
   const selectedTarget = statuses.find((s) => s.id === selectedId);
 
@@ -70,9 +124,82 @@ const App = () => {
             entry={entry}
             selected={entry.id === selectedId}
             onClick={() => setSelectedId(entry.id)}
+            onDelete={handleDelete}
           />
         ))}
       </div>
+
+      {/* Add Target Form */}
+      <form
+        onSubmit={handleAdd}
+        style={{
+          background: "#0f172a",
+          border: "1px solid #1e293b",
+          borderRadius: 8,
+          padding: 20,
+          marginBottom: 32,
+        }}
+      >
+        <p style={{ margin: "0 0 14px", fontWeight: 600, fontSize: 15 }}>
+          Add Monitoring Target
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <input
+            type="text"
+            placeholder="Name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            style={{
+              flex: "1 1 150px",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: 6,
+              color: "#e2e8f0",
+              fontSize: 14,
+              padding: "8px 12px",
+              outline: "none",
+            }}
+          />
+          <input
+            type="text"
+            placeholder="https://example.com"
+            value={newUrl}
+            onChange={(e) => setNewUrl(e.target.value)}
+            style={{
+              flex: "2 1 260px",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: 6,
+              color: "#e2e8f0",
+              fontSize: 14,
+              padding: "8px 12px",
+              outline: "none",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={formLoading}
+            style={{
+              background: formLoading ? "#334155" : "#3b82f6",
+              border: "none",
+              borderRadius: 6,
+              color: "#fff",
+              cursor: formLoading ? "not-allowed" : "pointer",
+              fontSize: 14,
+              fontWeight: 600,
+              padding: "8px 20px",
+              transition: "background 0.15s",
+            }}
+          >
+            {formLoading ? "Adding…" : "Add"}
+          </button>
+        </div>
+        {formError && (
+          <p style={{ color: "#ef4444", fontSize: 13, marginTop: 8, marginBottom: 0 }}>
+            {formError}
+          </p>
+        )}
+      </form>
 
       {selectedTarget && (
         <div
