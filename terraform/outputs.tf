@@ -7,3 +7,8 @@ output "ec2_public_dns" {
   description = "EC2 instance public DNS"
   value       = aws_instance.monitoring.public_dns
 }
+
+output "sns_topic_arn" {
+  description = "SNS topic ARN for alerts"
+  value       = aws_sns_topic.alerts.arn
+}

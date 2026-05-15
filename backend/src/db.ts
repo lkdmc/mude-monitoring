@@ -110,3 +110,9 @@ export const getHistory = (targetId: number) =>
 
 export const getTargetById = (id: number) =>
   query("SELECT * FROM targets WHERE id = ?", [id])[0] ?? null;
+
+export const getLastTwoChecks = (targetId: number) =>
+  query<{ is_up: number }>(
+    `SELECT is_up FROM checks WHERE target_id = ? ORDER BY checked_at DESC LIMIT 2`,
+    [targetId]
+  );
