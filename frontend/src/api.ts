@@ -86,3 +86,14 @@ export const fetchIncidents = async (): Promise<Incident[]> => {
   const json = await res.json();
   return json.data;
 };
+
+export type MaintenanceStatus = {
+  active: boolean;
+  current: { description: string; days: number[]; start: string; end: string; timezone?: string } | null;
+};
+
+export const fetchMaintenance = async (): Promise<MaintenanceStatus> => {
+  const res = await fetch(`${BASE}/maintenance`);
+  const json = await res.json();
+  return json.data;
+};

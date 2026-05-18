@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { getAllTargets, insertCheck, getLastTwoChecks } from "./db";
+import { getActiveMaintenanceWindow } from "./maintenance";
 
 type Target = { id: number; name: string; url: string };
 
@@ -90,6 +91,13 @@ const sendAlert = async (
   url: string,
   type: "DOWN" | "UP"
 ): Promise<void> => {
+  const window = getActiveMaintenanceWindow();
+  if (window) {
+    console.log(
+      `[Checker] Maintenance window "${window.description}" active — alert suppressed for ${name}`
+    );
+    return;
+  }
   await Promise.all([
     sendSnsAlert(name, url, type),
     sendTeamsAlert(name, url, type),

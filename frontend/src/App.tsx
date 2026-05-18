@@ -4,6 +4,7 @@ import {
   fetchHistory,
   fetchUptime,
   fetchIncidents,
+  fetchMaintenance,
   addTarget,
   removeTarget,
   getApiKey,
@@ -12,6 +13,7 @@ import {
   HistoryEntry,
   UptimeEntry,
   Incident,
+  MaintenanceStatus,
 } from "./api";
 import StatusCard from "./components/StatusCard";
 import UptimeChart from "./components/UptimeChart";
@@ -25,6 +27,7 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uptimeMap, setUptimeMap] = useState<Record<number, UptimeEntry>>({});
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [maintenance, setMaintenance] = useState<MaintenanceStatus | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newUrl, setNewUrl] = useState("");
@@ -52,6 +55,8 @@ const App = () => {
     );
     const incidentData = await fetchIncidents();
     setIncidents(incidentData);
+    const maintenanceData = await fetchMaintenance();
+    setMaintenance(maintenanceData);
   };
 
   const loadHistory = async (id: number) => {
@@ -154,6 +159,14 @@ const App = () => {
             {downCount > 0 && (
               <span style={{ background: "#450a0a", color: "#f87171", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>
                 ● {downCount} DOWN
+              </span>
+            )}
+            {maintenance?.active && (
+              <span
+                title={`Maintenance: ${maintenance.current?.description} — alerts suppressed`}
+                style={{ background: "#422006", color: "#fb923c", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}
+              >
+                🔧 Maintenance
               </span>
             )}
           </div>

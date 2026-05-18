@@ -11,6 +11,7 @@ import {
 } from "./db";
 import { checkTarget } from "./checker";
 import { requireApiKey, writeLimiter } from "./middleware";
+import { getActiveMaintenanceWindow, getAllWindows } from "./maintenance";
 
 const router = Router();
 
@@ -52,6 +53,18 @@ router.get("/uptime/:id", (req: Request, res: Response) => {
 
 router.get("/incidents", (_req: Request, res: Response) => {
   res.json({ success: true, data: getIncidents() });
+});
+
+router.get("/maintenance", (_req: Request, res: Response) => {
+  const active = getActiveMaintenanceWindow();
+  res.json({
+    success: true,
+    data: {
+      active: active !== null,
+      current: active ?? null,
+      windows: getAllWindows(),
+    },
+  });
 });
 
 router.post("/targets", writeLimiter, requireApiKey, (req: Request, res: Response) => {
