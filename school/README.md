@@ -142,39 +142,35 @@ TEAMS_WEBHOOK_URL=
 
 ---
 
-## HTTPS on the school server
+## HTTPS on edu01 (mude-monitoring.citg.tudelft.nl)
 
-If the campus already terminates TLS for you, just point its reverse proxy at
-`http://localhost:3000`. Otherwise, run a host nginx + Let's Encrypt:
-
-```bash
-sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx
-
-sudo tee /etc/nginx/sites-available/mude-monitor << 'EOF'
-server {
-    listen 80;
-    server_name mude-monitor.your-school.nl;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-sudo ln -s /etc/nginx/sites-available/mude-monitor /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl restart nginx
-sudo certbot --nginx -d mude-monitor.your-school.nl
-```
-
-Then set `PUBLIC_URL` and `ALLOWED_ORIGINS` to the `https://` URL and restart:
+DNS is a CNAME: `mude-monitoring.citg.tudelft.nl → edu01.citg.tudelft.nl`.
+edu01's root already serves another site, so we add a **name-based** nginx
+virtual host that only handles this hostname and proxies to the Docker frontend
+on `localhost:3000`. A ready-made config lives at
+[`deploy/nginx-mude-monitoring.conf`](deploy/nginx-mude-monitoring.conf).
 
 ```bash
-docker compose down && docker compose up -d
+# (nginx is already installed on edu01; install certbot if needed)
+sudo apt install -y certbot python3-certbot-nginx
+
+# Install the virtual host
+sudo cp deploy/nginx-mude-monitoring.conf /etc/nginx/sites-available/mude-monitoring
+sudo ln -s /etc/nginx/sites-available/mude-monitoring /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# Issue the cert (certbot adds the 443 block + HTTP->HTTPS redirect itself)
+sudo certbot --nginx -d mude-monitoring.citg.tudelft.nl
 ```
+
+`.env` already points `PUBLIC_URL` / `ALLOWED_ORIGINS` at the https name, so after
+the cert is issued just (re)start the stack:
+
+```bash
+docker compose up -d
+```
+
+Let's Encrypt certs auto-renew via the certbot systemd timer (90-day expiry).
 
 ---
 
